@@ -87,7 +87,7 @@ pub fn draw_res<T: DrawingBackend>(
     draw_res_text(&root, name, x, y, res_color_map.get(name).unwrap());
     draw_res_text(
         &root,
-        &number.to_string(),
+        &format_number(*number),
         x,
         y + 14,
         res_color_map.get(name).unwrap(),
@@ -112,4 +112,50 @@ pub fn create_data_dir() -> Result<(), Box<dyn std::error::Error>> {
         fs::create_dir(data_dir)?;
     }
     Ok(())
+}
+
+/// 千分位分割数字
+pub fn format_number(num: i32) -> String {
+    let num_str = num.to_string();
+    
+    // 处理负数情况
+    let (prefix, digits) = if num_str.starts_with('-') {
+        ("-", &num_str[1..])
+    } else {
+        ("", &num_str[..])
+    };
+    
+    let len = digits.len();
+    let mut result = String::from(prefix);
+    
+    for (i, ch) in digits.chars().enumerate() {
+        // 计算当前字符后是否需要添加逗号
+        // 从右边数起，每三位数字后添加一个逗号
+        if i > 0 && (len - i) % 3 == 0 {
+            result.push(',');
+        }
+        result.push(ch);
+    }
+    
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_number() {
+        assert_eq!(format_number(0), "0");
+        assert_eq!(format_number(12), "12");
+        assert_eq!(format_number(123), "123");
+        assert_eq!(format_number(1234), "1,234");
+        assert_eq!(format_number(12345), "12,345");
+        assert_eq!(format_number(123456), "123,456");
+        assert_eq!(format_number(1234567), "1,234,567");
+        assert_eq!(format_number(12345678), "12,345,678");
+        assert_eq!(format_number(123456789), "123,456,789");
+        assert_eq!(format_number(-1234567), "-1,234,567");
+        assert_eq!(format_number(-1234), "-1,234");
+    }
 }
