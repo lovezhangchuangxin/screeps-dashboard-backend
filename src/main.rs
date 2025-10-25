@@ -35,6 +35,9 @@ struct ResResponse {
 #[tokio::main]
 async fn main() {
     utils::create_data_dir().expect("create data dir failed");
+    dotenvy::dotenv().ok();
+    let port = std::env::var("PORT").unwrap_or("3000".to_string());
+    println!("Starting server on port {}", port);
 
     // 初始化API客户端
     let api = Arc::new(screeps_api_from_env!().unwrap());
@@ -59,7 +62,7 @@ async fn main() {
         );
 
     // 运行应用，监听3000端口
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
         .await
         .unwrap();
     axum::serve(listener, app).await.unwrap();
