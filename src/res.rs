@@ -24,7 +24,7 @@ pub async fn query_res(
 
     // 先根据玩家信息查玩家的 id
     let user_info = api.get_user_info_by_name(username).await?;
-    if user_info.base_data.ok.unwrap() != 1 {
+    if user_info.base_data.ok == None || user_info.base_data.ok.unwrap() != 1 {
         return Err(ScreepsError::Api("玩家不存在".to_string()));
     }
 

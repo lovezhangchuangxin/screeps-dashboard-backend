@@ -104,7 +104,7 @@ async fn get_res_image_handler(
 ) -> impl IntoResponse {
     let path = draw_res_image(&api, &params.username, &params.shard)
         .await
-        .unwrap();
+        .map_err(|e| (StatusCode::NOT_FOUND, format!("Error: {}", e)))?;
 
     let file = match tokio::fs::File::open(path).await {
         Ok(file) => file,
