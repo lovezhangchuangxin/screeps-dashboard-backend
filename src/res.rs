@@ -1,3 +1,13 @@
+use crate::{
+    constants::{
+        B_BLUE_RES, B_GREEN_RES, B_GREY_RES, B_PINK_RES, B_WHITE_RES, B_YELLOW_RES, BARS_RES,
+        BASE_RES, C_BLUE_RES, C_GREEN_RES, C_GREY_RES, C_PINK_RES, C_YELLOW_RES, POWER_RES,
+        res_color_map,
+    },
+    utils::{draw_res, draw_res_text, merge_res, parse_color},
+};
+use chrono::prelude::*;
+use plotters::prelude::*;
 use screeps_rust_api::{RoomObject, ScreepsApi, ScreepsError, ScreepsResult};
 use std::collections::HashMap;
 
@@ -104,4 +114,114 @@ pub async fn query_res(
     }
 
     Ok(result)
+}
+
+/// 绘制资源数据为图片
+pub async fn draw_res_image(
+    api: &ScreepsApi,
+    username: &str,
+    target_shard: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let res = query_res(api, username, target_shard).await?;
+    let res = merge_res(&res);
+    let image_path = format!("data/{}_{}.png", username, target_shard);
+    let gap = 100;
+    let res_color_map = res_color_map();
+    let root = BitMapBackend::new(&image_path, (9 * gap + 30, 540)).into_drawing_area();
+    root.fill(&parse_color("#2b2b2b").unwrap())?;
+    draw_res_text(&root, "baseRes", 10, 15, "#ffffff");
+    BASE_RES.iter().enumerate().for_each(|(i, &name)| {
+        draw_res(
+            &root,
+            &res_color_map,
+            name,
+            res.get(name).unwrap_or(&0),
+            30 + gap * (i as u32),
+            30,
+        );
+    });
+
+    draw_res_text(&root, "barsRes", 10, 65, "#ffffff");
+    BARS_RES.iter().enumerate().for_each(|(i, &name)| {
+        draw_res(
+            &root,
+            &res_color_map,
+            name,
+            res.get(name).unwrap_or(&0),
+            30 + gap * (i as u32),
+            80,
+        );
+    });
+
+    draw_res_text(&root, "powerRes", 10, 115, "#ffffff");
+    POWER_RES.iter().enumerate().for_each(|(i, &name)| {
+        draw_res(
+            &root,
+            &res_color_map,
+            name,
+            res.get(name).unwrap_or(&0),
+            30 + gap * (i as u32),
+            130,
+        );
+    });
+
+    draw_res_text(&root, "goods", 10, 165, "#ffffff");
+    let goods: Vec<Box<[&str]>> = vec![
+        Box::new(C_GREY_RES),
+        Box::new(C_BLUE_RES),
+        Box::new(C_YELLOW_RES),
+        Box::new(C_PINK_RES),
+        Box::new(C_GREEN_RES),
+    ];
+    for (y, goods) in goods.iter().enumerate() {
+        goods.iter().enumerate().for_each(|(i, &name)| {
+            draw_res(
+                &root,
+                &res_color_map,
+                name,
+                res.get(name).unwrap_or(&0),
+                30 + gap * (i as u32),
+                180 + (y as u32) * 30,
+            );
+        });
+    }
+
+    draw_res_text(&root, "labRes", 10, 335, "#ffffff");
+    let goods: Vec<Box<[&str]>> = vec![
+        Box::new(B_GREY_RES),
+        Box::new(B_BLUE_RES),
+        Box::new(B_YELLOW_RES),
+        Box::new(B_PINK_RES),
+        Box::new(B_GREEN_RES),
+        Box::new(B_WHITE_RES),
+    ];
+    for (y, goods) in goods.iter().enumerate() {
+        goods.iter().enumerate().for_each(|(i, &name)| {
+            draw_res(
+                &root,
+                &res_color_map,
+                name,
+                res.get(name).unwrap_or(&0),
+                30 + gap * (i as u32),
+                350 + (y as u32) * 30,
+            );
+        });
+    }
+
+    // 当前时间
+    let now: DateTime<Local> = Local::now();
+    let time_str = now.format("%Y/%m/%d %H:%M:%S").to_string();
+    draw_res_text(&root, &time_str, 780, 400, "#888");
+
+    let shard = if target_shard == "all" {
+        "all shard"
+    } else {
+        target_shard
+    };
+    let user = format!("{} {}", username, shard);
+    draw_res_text(&root, &user, 780, 420, "#888");
+
+    root.present()?;
+
+    Ok(image_path.clone())
 }
